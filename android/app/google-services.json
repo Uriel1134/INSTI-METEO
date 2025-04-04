@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "466678129551",
+    "firebase_url": "https://weatherinsti-default-rtdb.firebaseio.com",
+    "project_id": "weatherinsti",
+    "storage_bucket": "weatherinsti.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:466678129551:android:95102ed1a25816a23261fa",
+        "android_client_info": {
+          "package_name": "com.example.insti_meteo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDtEqmMKw5fx19MUCeQyvLtLY-Su1tKJ9I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
