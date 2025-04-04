@@ -17,12 +17,12 @@ class WeatherData {
 
   factory WeatherData.fromMap(Map<String, dynamic> map) {
     return WeatherData(
-      temperature: map['temperature']?.toDouble() ?? 0.0,
-      humidity: map['humidity']?.toDouble() ?? 0.0,
-      pressure: map['pressure']?.toDouble() ?? 0.0,
-      precipitation: map['precipitation']?.toDouble() ?? 0.0,
-      aqi: map['aqi']?.toInt() ?? 0,
-      timestamp: map['timestamp'] ?? '',
+      temperature: (map['temperature'] ?? 0.0).toDouble(),
+      humidity: (map['humidity'] ?? 0.0).toDouble(),
+      pressure: (map['pressure'] ?? 0.0).toDouble(),
+      precipitation: (map['precipitation'] ?? 0.0).toDouble(),
+      aqi: (map['aqi'] ?? 0).toInt(),
+      timestamp: map['timestamp']?.toString() ?? '',
     );
   }
 

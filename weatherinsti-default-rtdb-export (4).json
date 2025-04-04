@@ -1,0 +1,14 @@
+{
+  "precipitation": {
+    "timestamp": 1743768059.35551,
+    "value": 12.3
+  },
+  "weather_data": {
+    "aqi": 40,
+    "humidity": 30,
+    "precipitation": 100,
+    "pressure": 1013.25,
+    "temperature": 50,
+    "timestamp": "[timestamp]"
+  }
+}

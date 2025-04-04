@@ -100,7 +100,7 @@ class _AccueilState extends State<Accueil> {
     final pages = [
       AccueilPage(weatherData: _currentWeather, currentTime: _currentTime, location: _location),
       AirQuality(weatherService: _weatherService),
-      const Precipitation(),
+      Precipitation(weatherService: _weatherService),
       const Humidity(),
     ];
 

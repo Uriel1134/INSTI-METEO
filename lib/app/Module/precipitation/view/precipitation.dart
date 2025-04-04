@@ -3,9 +3,13 @@ import 'dart:math';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:insti_meteo/app/models/weather_data.dart';
+import 'package:insti_meteo/app/services/weather_service.dart';
 
 class Precipitation extends StatefulWidget {
-  const Precipitation({super.key});
+  final WeatherService weatherService;
+
+  const Precipitation({super.key, required this.weatherService});
 
   @override
   State<Precipitation> createState() => _PrecipitationState();
@@ -13,6 +17,7 @@ class Precipitation extends StatefulWidget {
 
 class _PrecipitationState extends State<Precipitation> {
   double _precipitationValue = 0; // Valeur de la précipitation (en mm)
+  List<double> _precipitationHistory = []; // Historique des précipitations
 
   /// Retourne la couleur associée à la valeur de précipitation
   Color getBarColor(double value) {
@@ -53,201 +58,240 @@ class _PrecipitationState extends State<Precipitation> {
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    Timer.periodic(Duration(seconds: 3), (timer) {
-      setState(() {
-        _precipitationValue = Random().nextDouble() * 50; // Simulation entre 0 et 50mm
-      });
-    });
+  void _checkRainAlert(double value) {
+    if (value > 30) { // Seuil pour forte pluie
+      // Logique pour alerter l'utilisateur
+      print("Alerte : Forte pluie détectée !");
+    }
+  }
+
+  void _updatePrecipitationHistory() {
+    if (_precipitationHistory.length >= 10) { // Limiter l'historique à 10 entrées
+      _precipitationHistory.removeAt(0);
+    }
+    _precipitationHistory.add(_precipitationValue);
+  }
+
+  String _analyzeTrends() {
+    if (_precipitationHistory.length < 2) return "Pas assez de données";
+    double lastValue = _precipitationHistory[_precipitationHistory.length - 1];
+    double previousValue = _precipitationHistory[_precipitationHistory.length - 2];
+    if (lastValue > previousValue) {
+      return "Tendance : Augmentation des précipitations";
+    } else if (lastValue < previousValue) {
+      return "Tendance : Diminution des précipitations";
+    } else {
+      return "Tendance : Stable";
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              "Precipitation",
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 20,
-                fontFamily: "Poppins",
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.08,
-              ),
-            ),
-            Container(
-              width: 50,
-              height: 50,
-              decoration: ShapeDecoration(
-                image: DecorationImage(
-                  image: AssetImage("assets/images/logo.png"),
-                  fit: BoxFit.cover,
-                ),
-                color: Colors.transparent,
-                shape: OvalBorder(),
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: Stack(
-        children: [
-          Positioned(
-            child: Container(
-              width: MediaQuery.of(context).size.width,
-              height: MediaQuery.of(context).size.height,
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                  image: AssetImage("assets/images/img.png"),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            child: Container(
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage("assets/images/fond.png"),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-          ),
+    return StreamBuilder<WeatherData>(
+      stream: widget.weatherService.getWeatherDataStream(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          SingleChildScrollView(
-            child: Column(
+        final weatherData = snapshot.data!;
+        _precipitationValue = weatherData.precipitation;
+        _checkRainAlert(_precipitationValue);
+        _updatePrecipitationHistory();
+
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                SizedBox(height: MediaQuery.of(context).size.height * 0.05), // Espacement initial
-
-                Container(
-                  width: 325,
-                  height: 245,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: Colors.black.withOpacity(0.3),
+                Text(
+                  "Precipitation",
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 20,
+                    fontFamily: "Poppins",
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.08,
                   ),
-
-                  child: BarChart(
-                    BarChartData(
-                      alignment: BarChartAlignment.spaceAround,
-                      maxY: 50, // Valeur max de précipitation (à ajuster)
-                      barGroups: getBarGroups(),
-                      titlesData: FlTitlesData(
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            getTitlesWidget: (value, _) {
-                              return Text("Actuel", style: TextStyle(color: Colors.white));
-                            },
-                          ),
-                        ),
-                        leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)), // Caché
-                        rightTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 40,
-                            getTitlesWidget: (value, _) {
-                              return Text(
-                                value.toInt().toString(),
-                                style: TextStyle(color: Colors.white, fontSize: 12),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                      gridData: FlGridData(show: false), // Suppression des lignes de grille
-                      borderData: FlBorderData(
-                        show: true,
-                        border: Border(
-                          bottom: BorderSide(color: Colors.white, width: 1), // Axe du bas visible
-                          right: BorderSide(color: Colors.white, width: 1), // Axe de droite visible
-                          left: BorderSide.none, // Axe de gauche masqué
-                          top: BorderSide.none,
-                        ),
-                      )
+                ),
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: ShapeDecoration(
+                    image: DecorationImage(
+                      image: AssetImage("assets/images/logo.png"),
+                      fit: BoxFit.cover,
                     ),
+                    color: Colors.transparent,
+                    shape: OvalBorder(),
                   ),
                 ),
-
-                const SizedBox(height: 20),
-
-                Container(
-                  width: 315,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: Colors.black.withOpacity(0.3),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildLegendItem(Color(0xFF021C7C), "Forte pluie/Orage"),
-                          _buildLegendItem(Colors.blue, "Pluie légère"),
-                        ],
-                      ),
-                      SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildLegendItem(Colors.purple, "Pluie modérée"),
-                          _buildLegendItem(Colors.white, "Pas de pluie"),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "Résumé quotidien",
-                      style: TextStyle(color: Color(0XFFFFAD01), fontWeight: FontWeight.bold, fontSize: 18),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                Container(
-                  width: 340,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: Colors.black.withOpacity(0.3),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 5),
-                      Text(
-                        "Prévision : ${getRainType(_precipitationValue)}",
-                        style: TextStyle(color: Colors.white, fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ),
-
-                SizedBox(height: 150), // Espacement initial
-
               ],
             ),
           ),
-        ],
-      ),
+          body: Stack(
+            children: [
+              Positioned(
+                child: Container(
+                  width: MediaQuery.of(context).size.width,
+                  height: MediaQuery.of(context).size.height,
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage("assets/images/img.png"),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage("assets/images/fond.png"),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
+
+              SingleChildScrollView(
+                child: Column(
+                  children: [
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.05), // Espacement initial
+
+                    Container(
+                      width: 325,
+                      height: 245,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.black.withOpacity(0.3),
+                      ),
+
+                      child: BarChart(
+                        BarChartData(
+                          alignment: BarChartAlignment.spaceAround,
+                          maxY: 50, // Valeur max de précipitation (à ajuster)
+                          barGroups: getBarGroups(),
+                          titlesData: FlTitlesData(
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                getTitlesWidget: (value, _) {
+                                  return Text("Actuel", style: TextStyle(color: Colors.white));
+                                },
+                              ),
+                            ),
+                            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)), // Caché
+                            rightTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 40,
+                                getTitlesWidget: (value, _) {
+                                  return Text(
+                                    value.toInt().toString(),
+                                    style: TextStyle(color: Colors.white, fontSize: 12),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          gridData: FlGridData(show: false), // Suppression des lignes de grille
+                          borderData: FlBorderData(
+                            show: true,
+                            border: Border(
+                              bottom: BorderSide(color: Colors.white, width: 1), // Axe du bas visible
+                              right: BorderSide(color: Colors.white, width: 1), // Axe de droite visible
+                              left: BorderSide.none, // Axe de gauche masqué
+                              top: BorderSide.none,
+                            ),
+                          )
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    Container(
+                      width: 315,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.black.withOpacity(0.3),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _buildLegendItem(Color(0xFF021C7C), "Forte pluie/Orage"),
+                              _buildLegendItem(Colors.blue, "Pluie légère"),
+                            ],
+                          ),
+                          SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _buildLegendItem(Colors.purple, "Pluie modérée"),
+                              _buildLegendItem(Colors.white, "Pas de pluie"),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "Résumé quotidien",
+                          style: TextStyle(color: Color(0XFFFFAD01), fontWeight: FontWeight.bold, fontSize: 18),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    Container(
+                      width: 340,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.black.withOpacity(0.3),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 5),
+                          Text(
+                            "Prévision : ",
+                            style: TextStyle(color: Colors.white, fontSize: 14),
+                          ),
+                          Text(
+                            "${getRainType(_precipitationValue)}",
+                            style: TextStyle(color: Colors.white, fontSize: 14),
+                          ),
+                          Text(
+                            _analyzeTrends(),
+                            style: TextStyle(color: Colors.white, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: 150), // Espacement initial
+
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
